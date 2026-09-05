@@ -1,0 +1,138 @@
+name: yuyaiq-erpnext-lab
+
+x-erpnext-image: &erpnext-image
+  image: frappe/erpnext:v16.31.1
+  restart: unless-stopped
+
+x-sites-volume: &sites-volume
+  - sites:/home/frappe/frappe-bench/sites
+
+services:
+  mariadb:
+    image: mariadb:11.8
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-character-set-client-handshake
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in docker/.env}
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  redis-cache:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: redis-server --save "" --appendonly no
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  redis-queue:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: redis-server --save "" --appendonly no
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  configurator:
+    <<: *erpnext-image
+    restart: "no"
+    command:
+      - bash
+      - -ec
+      - |
+        ls -1 apps > sites/apps.txt
+        bench set-config -g db_host "$${DB_HOST}"
+        bench set-config -gp db_port "$${DB_PORT}"
+        bench set-config -g redis_cache "redis://$${REDIS_CACHE}"
+        bench set-config -g redis_queue "redis://$${REDIS_QUEUE}"
+        bench set-config -g redis_socketio "redis://$${REDIS_QUEUE}"
+        bench set-config -gp socketio_port "$${SOCKETIO_PORT}"
+    environment:
+      DB_HOST: mariadb
+      DB_PORT: "3306"
+      REDIS_CACHE: redis-cache:6379
+      REDIS_QUEUE: redis-queue:6379
+      SOCKETIO_PORT: "9000"
+    volumes: *sites-volume
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis-cache:
+        condition: service_healthy
+      redis-queue:
+        condition: service_healthy
+
+  backend:
+    <<: *erpnext-image
+    command: start.sh
+    environment:
+      DB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in docker/.env}
+      SITE_ADMIN_PASSWORD: ${SITE_ADMIN_PASSWORD:?set SITE_ADMIN_PASSWORD in docker/.env}
+    volumes: *sites-volume
+    depends_on:
+      configurator:
+        condition: service_completed_successfully
+
+  frontend:
+    <<: *erpnext-image
+    command: nginx-entrypoint.sh
+    environment:
+      BACKEND: backend:8000
+      SOCKETIO: websocket:9000
+      FRAPPE_SITE_NAME_HEADER: $${host}
+    volumes: *sites-volume
+    ports:
+      - "8080:8080"
+    depends_on:
+      backend:
+        condition: service_started
+      websocket:
+        condition: service_started
+
+  websocket:
+    <<: *erpnext-image
+    command: node /home/frappe/frappe-bench/apps/frappe/socketio.js
+    volumes: *sites-volume
+    depends_on:
+      configurator:
+        condition: service_completed_successfully
+
+  queue-short:
+    <<: *erpnext-image
+    command: bench worker --queue short,default
+    volumes: *sites-volume
+    depends_on:
+      configurator:
+        condition: service_completed_successfully
+
+  queue-long:
+    <<: *erpnext-image
+    command: bench worker --queue long,default,short
+    volumes: *sites-volume
+    depends_on:
+      configurator:
+        condition: service_completed_successfully
+
+  scheduler:
+    <<: *erpnext-image
+    command: bench schedule
+    volumes: *sites-volume
+    depends_on:
+      configurator:
+        condition: service_completed_successfully
+
+volumes:
+  mariadb-data:
+  sites:
