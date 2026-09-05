@@ -2,7 +2,7 @@
 
 ## Confirmed Frappe/ERPNext facts
 
-- `CONFIRMED` — La investigación Docker realizada usa las fuentes oficiales listadas en [sources.md](../sources.md). No existe implementación local todavía.
+- `CONFIRMED` — La investigación Docker realizada usa las fuentes oficiales listadas en [sources.md](../sources.md).
 - `CONFIRMED` — `pwd.yml` es para exploración desechable; no es una base de desarrollo, producción ni migración.
 - `CONFIRMED` — Desarrollo local se realiza con Devcontainers; producción manual se realiza con `compose.yaml` y overrides.
 - `CONFIRMED` — Base: `configurator`, `backend`, `frontend`, `websocket`, `queue-short`, `queue-long` y `scheduler`.
@@ -15,11 +15,20 @@
 - `CONFIRMED` — DB debe estar saludable; Gunicorn/Socket.IO se comprueban por conectividad y workers/scheduler con `healthcheck.sh`.
 - `CONFIRMED` — `pwd.yml` utiliza una configuración de demo y es desechable.
 
+## Laboratory validation
+
+- `CONFIRMED` — El laboratorio local usa `frappe/erpnext:v16.31.1`. `bench version` reportó ERPNext `16.31.1` y Frappe `16.31.0`.
+- `CONFIRMED` — El site principal `erpnext.localhost` está instalado y accesible mediante el frontend local.
+- `CONFIRMED` — El stack validó frontend, backend, WebSocket, `queue-short`, `queue-long`, scheduler, configurator, MariaDB, Redis cache y Redis queue.
+- `CONFIRMED` — MariaDB y el volumen de sites conservaron el site, configuración, dato de prueba y archivos público/privado después de `docker compose down` y `docker compose up -d`, sin usar `-v`.
+- `CONFIRMED` — `bench --site erpnext.localhost backup --with-files --compress` generó backup de base de datos, configuración, archivos públicos y privados.
+- `CONFIRMED` — `bench restore` restauró exitosamente el backup en `erpnext-restore-debug.localhost`, incluidos archivos públicos y privados, con exit code `0` y el mensaje `Site erpnext-restore-debug.localhost has been restored with files`.
+
 ## Proposed approach for YuyaIQ
 
 - `HYPOTHESIS` — Una configuración propia basada en `compose.yaml` y overrides oficiales podría ser preferible a operar una copia de `pwd.yml` para un entorno persistente.
 - `HYPOTHESIS` — Una topología con proxy HTTPS como único punto público y servicios de datos en red interna podría ser apropiada para YuyaIQ.
-- `HYPOTHESIS` — Frappe `version-16` y ERPNext con etiqueta exacta `v16.30.0` podrían servir como punto de partida, tras validar compatibilidad al implementar.
+- `YUYAIQ DECISION` — Para el laboratorio de `feature/docker-bootstrap`, el baseline exacto es `frappe/erpnext:v16.31.1`; se espera ERPNext `v16.31.1`. La versión de Frappe se obtendrá de la imagen y se verificará con `bench version` tras levantar el entorno. Ver [ADR 0001](../../decisions/0001-docker-bootstrap-baseline.md).
 - `HYPOTHESIS` — Fijar la revisión de `frappe_docker` e imágenes, en vez de usar etiquetas flotantes, podría mejorar la reproducibilidad.
 - `HYPOTHESIS` — Persistir `sites`, datos de base y estado TLS fuera de Git, manteniendo secretos fuera del repositorio, podría satisfacer requisitos operativos.
 - `HYPOTHESIS` — Las plantillas podrían documentar nombres de variables sin versionar secretos.
@@ -31,3 +40,4 @@
 
 - `PENDING` — Validar recursos, dominio, proveedor de TLS, almacenamiento de backups y requisitos de disponibilidad antes de implementación.
 - `PENDING` — Seleccionar versiones concretas y comprobar su compatibilidad en el momento de implementar.
+- `PENDING` — Decidir y registrar la versión definitiva de producción de YuyaIQ; el baseline del laboratorio no constituye dicha decisión.
