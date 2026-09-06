@@ -12,3 +12,4 @@ Estado de arquitectura de producción: `PENDING` — el laboratorio no constituy
 
 - `CONFIRMED` — El laboratorio Docker local está implementado con frontend, backend, WebSocket, workers, scheduler, configurator, MariaDB y dos servicios Redis.
 - `CONFIRMED` — Solo el frontend se publica al host para acceso local; MariaDB y Redis permanecen internos al stack.
+- `CONFIRMED` — El site LAB usa una base MariaDB propia observada como `_be1ae98086729644`; su schema contiene 737 tablas. El modelo físico detallado está documentado en `docs/knowledge/platform/database-model.md`.

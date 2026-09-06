@@ -15,3 +15,8 @@
 - `CONFIRMED` — Audit Trail existe como DocType single nativo, restringido a System Manager. Su código compara documentos a través de la cadena `amended_from` y Version; no crea por sí mismo una bitácora independiente de toda actividad.
 - `CONFIRMED` — El Error Log `ncu2qlrnbe` conserva método, fecha, usuario owner, traceback, fingerprint y metadata. No contiene referencia documental ni trace ID, de modo que no puede vincularse de forma demostrable con la factura seleccionada.
 - `PENDING` — Definir requisitos de retención, búsqueda y correlación entre documentos de negocio, Error Log y logs de contenedor. La evidencia actual permite reconstruir la transacción contable elegida, pero no afirmar una auditoría técnica completa de cada operación.
+
+## Dependencias físicas observadas
+
+- `CONFIRMED` — Version se recupera por el índice compuesto `(ref_doctype, docname)`; GL Entry por pares de voucher; Payment Ledger Entry por pares de voucher/against voucher. Son relaciones lógicas sin foreign keys físicas en el schema del site.
+- `CONFIRMED` — Error Log es una tabla MyISAM en este LAB, a diferencia de la mayoría InnoDB. Su trazabilidad debe evaluarse junto con su metadata y retención, no asumirse como parte de la misma semántica transaccional de los documentos InnoDB.

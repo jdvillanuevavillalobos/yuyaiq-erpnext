@@ -20,3 +20,9 @@ Estado: `PENDING` — pendiente de identificación, evaluación y responsables a
 - `CONFIRMED` — El Error Log de Setup Wizard analizado conserva metadata de solicitud HTTP además del traceback. Se observó información sensible enviada por el formulario; su valor no se copia a esta documentación.
 - `HYPOTHESIS` — El acceso a Error Log y la retención de sus metadata requerirán hardening antes de un entorno con datos reales.
 - `PENDING` — Definir la política de acceso, retención y sanitización de Error Log, y validar qué campos pueden persistirse en registros de incidente.
+
+## Acceso SQL directo y permisos de aplicación
+
+- `CONFIRMED` — El schema no contiene foreign keys físicas para los Link fields observados y las comprobaciones de permisos/ciclo de vida se ejecutan en Frappe. Una consulta SQL directa no ejecuta esas comprobaciones de aplicación.
+- `HYPOTHESIS` — Cuentas de lectura para reporting externo requerirán alcance mínimo, separación de credenciales y controles de acceso antes de un entorno con datos reales.
+- `PENDING` — Definir la política de acceso directo a MariaDB y el mecanismo aprobado para reporting/BI.
